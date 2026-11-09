@@ -1,0 +1,25 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "references": {
+        "old_laravel": {
+            "path": "../Rehlati",
+            "description": "Reference project containing existing features and logic"
+        }
+    },
+    "permission": {
+        "external_directory": {
+            "../Rehlati/**": "allow"
+        }
+    },
+    "mcp": {
+        "laravel-boost": {
+            "type": "local",
+            "enabled": true,
+            "command": [
+                "php",
+                "artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}

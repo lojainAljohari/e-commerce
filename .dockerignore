@@ -1,0 +1,12 @@
+.dockerignore
+.env
+.env.*
+!.env.example
+.git
+.github
+.idea
+.phpunit.result.cache
+node_modules
+public/hot
+storage/logs/*
+
