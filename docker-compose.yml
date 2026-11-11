@@ -8,7 +8,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
+      - .:/var/www/html
       - app_public:/var/www/html/public
       - app_storage:/var/www/html/storage
 
@@ -35,7 +38,8 @@ services:
         condition: service_healthy
 
   db:
-    image: mysql:8.0-debian
+    image: mysql:8.4
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=ROW
     environment:
       MYSQL_DATABASE: ecommerce
       MYSQL_USER: ecommerce
@@ -48,6 +52,30 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  db_replica:
+    image: mysql:8.4
+    command: --server-id=2 --relay-log=replica-relay-bin --read-only=ON --super-read-only=ON
+    environment:
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ecommerce
+      MYSQL_PASSWORD: ecommerce
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_replica_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   warehouse_db:
     image: mysql:8.0-debian
     environment:
@@ -83,3 +111,4 @@ volumes:
   app_storage:
   db_data:
   warehouse_db_data:
+  db_replica_data:

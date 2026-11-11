@@ -17,7 +17,10 @@ class RoleSeeder extends Seeder
             'organizer',
             'user',
         ] as $role) {
-            Role::create(['name' => $role, 'guard_name' => 'api']);
+            Role::firstOrCreate([
+                'name' => $role,
+                'guard_name' => 'api',
+            ]);
         }
     }
 }

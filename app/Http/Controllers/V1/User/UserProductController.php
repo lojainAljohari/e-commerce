@@ -10,6 +10,7 @@ use App\Services\Warehouse\WarehouseClient;
 use App\Services\Warehouse\WarehouseUnavailableException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class UserProductController extends Controller
 {
@@ -22,7 +23,16 @@ class UserProductController extends Controller
             $query->where('name_'.app()->getLocale(), 'like', '%'.$name.'%');
         }
 
-        $products = $query->paginate(5);
+        $cacheKey = 'category:'.$category->id
+        .':locale:'.app()->getLocale()
+        .':name:'.md5($name)
+        .':page:'.$request->integer('page', 1);
+
+        $products = Cache::tags(['products'])->remember(
+        $cacheKey,
+        now()->addMinutes(10),
+        fn () => $query->paginate(5)
+        );
 
         $unavailable = false;
         $products->getCollection()->transform(function (Product $product) use ($warehouse, &$unavailable) {
@@ -52,17 +62,25 @@ class UserProductController extends Controller
         ]);
     }
 
+    
+
     public function show(Product $product, WarehouseClient $warehouse): JsonResponse
     {
         $data = (new UserProductResource($product->load(['category', 'images'])))->resolve();
 
         try {
-            $data['available_quantity'] = $warehouse->getQuantity($product->id);
+         $data['available_quantity'] = $warehouse->getQuantity($product->id);
         } catch (WarehouseUnavailableException) {
             $data['available_quantity'] = null;
             $data['stock_message'] = __('Stock information is temporarily unavailable');
         }
 
-        return $this->succeed(__('Product fetched successfully'), $data);
+        $response = $this->succeed(__('Product fetched successfully'), $data);
+
+        $response->setEtag(hash('sha256', $response->getContent()));
+        $response->isNotModified(request());
+
+        return $response;
     }
+
 }

@@ -9,4 +9,9 @@
 node_modules
 public/hot
 storage/logs/*
-
+**/node_modules
+**/vendor
+**/.git
+**/dist
+**/.env
+**/.env.*

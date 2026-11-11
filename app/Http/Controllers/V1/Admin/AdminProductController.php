@@ -14,6 +14,7 @@ use App\Services\V1\Admin\ProductImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Cache;
 
 class AdminProductController extends Controller
 {
@@ -46,7 +47,7 @@ class AdminProductController extends Controller
         if ($request->hasFile('images')) {
             $imageService->store($product, $request->file('images'));
         }
-
+        $this->clearProductsCache();
         return $this->succeed(__('Product created successfully'), new AdminProductResource($product->load(['category', 'images'])), 201);
     }
 
@@ -61,6 +62,7 @@ class AdminProductController extends Controller
     {
         Gate::authorize('update', $product);
         $product->update($request->validated());
+        $this->clearProductsCache();
 
         return $this->succeed(__('Product updated successfully'), new AdminProductResource($product->refresh()->load(['category', 'images'])));
     }
@@ -69,6 +71,7 @@ class AdminProductController extends Controller
     {
         Gate::authorize('delete', $product);
         $product->delete();
+        $this->clearProductsCache();
 
         return $this->succeed(__('Product deleted successfully'), [], 204);
     }
@@ -81,6 +84,8 @@ class AdminProductController extends Controller
             return $this->failed(__('A product can have a maximum of 5 images.'), 422);
         }
         $imageService->store($product, $request->file('images'));
+        
+        $this->clearProductsCache();
 
         return $this->succeed(__('Product images added successfully'), [], 201);
     }
@@ -90,7 +95,12 @@ class AdminProductController extends Controller
         abort_unless($productImage->product_id === $product->id, 404);
         Gate::authorize('delete', $productImage);
         $imageService->delete($productImage);
+        $this->clearProductsCache();
 
         return $this->succeed(__('Product image deleted successfully'), [], 204);
+    }
+    private function clearProductsCache(): void
+    {
+        Cache::tags(['products'])->flush();
     }
 }

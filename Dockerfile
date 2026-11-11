@@ -43,11 +43,16 @@ RUN apt-get update \
         pdo_sqlite \
         zip \
     && rm -rf /var/lib/apt/lists/*
-
+    
+RUN pecl install redis \
+    && docker-php-ext-enable redis
 WORKDIR /var/www/html
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY . .
+
+COPY --from=dependencies /var/www/html/vendor ./vendor
+
 RUN test -f vendor/autoload.php
 
 COPY --from=frontend /var/www/html/public/build ./public/build
